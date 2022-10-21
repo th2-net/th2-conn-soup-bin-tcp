@@ -1,0 +1,90 @@
+plugins {
+    id 'com.palantir.docker' version '0.25.0'
+    id 'org.jetbrains.kotlin.jvm' version "${kotlin_version}"
+    id 'application'
+}
+
+apply plugin: 'kotlin-kapt'
+
+group = 'com.exactpro.th2'
+version = release_version
+
+sourceCompatibility = 11
+targetCompatibility = 11
+
+compileKotlin {
+    kotlinOptions.jvmTarget = '11'
+}
+
+compileTestKotlin {
+    kotlinOptions.jvmTarget = '11'
+}
+
+repositories {
+    mavenCentral()
+
+    maven {
+        url 'https://s01.oss.sonatype.org/content/repositories/snapshots/'
+    }
+
+    maven {
+        url 'https://s01.oss.sonatype.org/content/repositories/releases/'
+    }
+
+    mavenLocal()
+
+    configurations.all {
+        resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+        resolutionStrategy.cacheDynamicVersionsFor 0, 'seconds'
+    }
+}
+
+jar {
+    manifest {
+        attributes(
+                'Created-By': "${System.getProperty('java.version')} (${System.getProperty('java.vendor')})",
+                'Specification-Title': '',
+                'Specification-Vendor': 'Exactpro Systems LLC',
+                'Implementation-Title': project.archivesBaseName,
+                'Implementation-Vendor': 'Exactpro Systems LLC',
+                'Implementation-Vendor-Id': 'com.exactpro',
+                'Implementation-Version': project.version
+        )
+    }
+}
+
+dependencies {
+    api platform('com.exactpro.th2:bom:3.2.0')
+
+    implementation 'com.exactpro.th2:conn-dirty-tcp-core:2.0.0'
+    implementation 'com.exactpro.th2:common:3.40.0-TH2-3789-2817159492-SNAPSHOT'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+    implementation 'org.slf4j:slf4j-api'
+    implementation 'io.github.microutils:kotlin-logging:2.1.14'
+    implementation 'io.netty:netty-buffer:4.1.79.Final'
+    implementation 'com.google.auto.service:auto-service:1.0.1'
+
+    kapt 'com.google.auto.service:auto-service:1.0.1'
+}
+
+application {
+    mainClassName 'com.exactpro.th2.conn.dirty.tcp.core.Main'
+}
+
+applicationName = 'service'
+
+distTar {
+    archiveName "${applicationName}.tar"
+}
+
+dockerPrepare {
+    dependsOn distTar
+}
+
+docker {
+    copySpec.from(tarTree("$buildDir/distributions/${applicationName}.tar"))
+}
+
+test {
+    useJUnitPlatform()
+}
